@@ -1,58 +1,40 @@
 #!/usr/bin/python3
-"""Reads from standard input and computes metrics.
+"""Performs log parsing from stdin"""
 
-After every ten lines or the input of a keyboard interruption (CTRL + C),
-prints the following statistics:
-    - Total file size up to that point.
-    - Count of read status codes up to that point.
-"""
+import re
+import sys
+counter = 0
+file_size = 0
+statusC_counter = {200: 0, 301: 0, 400: 0,
+                   401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
 
 
-def print_stats(size, status_codes):
-    """Print accumulated metrics.
+def printCodes(dict, file_s):
+    """Prints the status code and the number of times they appear"""
+    print("File size: {}".format(file_s))
+    for key in sorted(dict.keys()):
+        if statusC_counter[key] != 0:
+            print("{}: {}".format(key, dict[key]))
 
-    Args:
-        size (int): The accumulated read file size.
-        status_codes (dict): The accumulated count of status codes.
-    """
-    print("File size: {}".format(size))
-    for key in sorted(status_codes):
-        print("{}: {}".format(key, status_codes[key]))
 
 if __name__ == "__main__":
-    import sys
-
-    size = 0
-    status_codes = {}
-    valid_codes = ['200', '301', '400', '401', '403', '404', '405', '500']
-    count = 0
-
     try:
         for line in sys.stdin:
-            if count == 10:
-                print_stats(size, status_codes)
-                count = 1
-            else:
-                count += 1
-
-            line = line.split()
-
+            split_string = re.split('- |"|"| " " ', str(line))
+            statusC_and_file_s = split_string[-1]
+            if counter != 0 and counter % 10 == 0:
+                printCodes(statusC_counter, file_size)
+            counter = counter + 1
             try:
-                size += int(line[-1])
-            except (IndexError, ValueError):
+                statusC = int(statusC_and_file_s.split()[0])
+                f_size = int(statusC_and_file_s.split()[1])
+                # print("Status Code {} size {}".format(statusC, f_size))
+                if statusC in statusC_counter:
+                    statusC_counter[statusC] += 1
+                file_size = file_size + f_size
+            except:
                 pass
-
-            try:
-                if line[-2] in valid_codes:
-                    if status_codes.get(line[-2], -1) == -1:
-                        status_codes[line[-2]] = 1
-                    else:
-                        status_codes[line[-2]] += 1
-            except IndexError:
-                pass
-
-        print_stats(size, status_codes)
-
+        printCodes(statusC_counter, file_size)
     except KeyboardInterrupt:
-        print_stats(size, status_codes)
+        printCodes(statusC_counter, file_size)
         raise

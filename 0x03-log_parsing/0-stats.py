@@ -1,40 +1,39 @@
 #!/usr/bin/python3
 """Performs log parsing from stdin"""
-
-import re
 import sys
-counter = 0
-file_size = 0
-statusC_counter = {200: 0, 301: 0, 400: 0,
-                   401: 0, 403: 0, 404: 0, 405: 0, 500: 0}
 
 
-def printCodes(dict, file_s):
-    """Prints the status code and the number of times they appear"""
-    print("File size: {}".format(file_s))
-    for key in sorted(dict.keys()):
-        if statusC_counter[key] != 0:
-            print("{}: {}".format(key, dict[key]))
-
+out = sys.stdin
+def parsing():
+    """Parsing the giving"""
+    lists = []
+    items = 0
+    status = {}
+    
+    try:
+        for lines in out:
+            d = lines.strip().split()
+            helping(d, lists, items, status)
+    except KeyboardInterrupt:
+        return
+    
+def helping(output, l, i, s):
+    """Helping in parsing the giving"""
+    code = int(output[-2])
+    size = int(output[-1])
+    if isinstance(code, int) and isinstance(size, int):
+        diction = {'status_code': code, 'file_size': size}
+        l.append(diction)
+        if len(l) == 10:
+            for item in l:
+                i = i + item.get('file_size')
+                c = item.get('status_code')
+                s[c] = s.get(c, 0) + 1
+            print(f'File size: {i}')
+            for key, value in sorted(s.items()):
+                print(f'{key}: {value}')
+            print(l)
+            l.clear()
 
 if __name__ == "__main__":
-    try:
-        for line in sys.stdin:
-            split_string = re.split('- |"|"| " " ', str(line))
-            statusC_and_file_s = split_string[-1]
-            if counter != 0 and counter % 10 == 0:
-                printCodes(statusC_counter, file_size)
-            counter = counter + 1
-            try:
-                statusC = int(statusC_and_file_s.split()[0])
-                f_size = int(statusC_and_file_s.split()[1])
-                # print("Status Code {} size {}".format(statusC, f_size))
-                if statusC in statusC_counter:
-                    statusC_counter[statusC] += 1
-                file_size = file_size + f_size
-            except:
-                pass
-        printCodes(statusC_counter, file_size)
-    except KeyboardInterrupt:
-        printCodes(statusC_counter, file_size)
-        raise
+    parsing()
